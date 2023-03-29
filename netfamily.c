@@ -119,7 +119,6 @@ static struct rte_kni *ng_alloc_kni(struct rte_mempool *mbuf_pool) {
 	ops.port_id = D_PORT_ID;
 	ops.config_network_if = ng_config_network_if;
 	
-
 	kni_hanlder = rte_kni_alloc(mbuf_pool, &conf, &ops);	
 	if (!kni_hanlder) {
 		rte_exit(EXIT_FAILURE, "Failed to create kni for port : %d\n", D_PORT_ID);
@@ -133,14 +132,13 @@ static int pkt_process(void *arg)
     struct rte_mempool *pstMbufPool;
     int iRxNum;
 	int i;
-	struct rte_mbuf *pstMbuf[32];
 	struct rte_ether_hdr *pstEthHdr;
-	// struct arp_hdr *pstArpHdr;
     struct rte_ipv4_hdr *pstIpHdr;
 
     pstMbufPool = (struct rte_mempool *)arg;
     while(1)
     {
+		struct rte_mbuf *pstMbuf[32];
         iRxNum = rte_ring_mc_dequeue_burst(g_pstRingIns->pstInRing, (void**)pstMbuf, D_BURST_SIZE, NULL);
         
         if(iRxNum <= 0)
@@ -149,11 +147,9 @@ static int pkt_process(void *arg)
         for(i = 0; i < iRxNum; ++i)
         {
             pstEthHdr = rte_pktmbuf_mtod_offset(pstMbuf[i], struct rte_ether_hdr *, 0);
-            dbg_print("pstEthHdr->ether_type", (unsigned char*)&pstEthHdr->ether_type, sizeof(uint16_t));
             if (pstEthHdr->ether_type == rte_cpu_to_be_16(RTE_ETHER_TYPE_IPV4))   //IPv4: 0800 
             {
-                pstIpHdr = (struct rte_ipv4_hdr *)(pstEthHdr + 1);
-                dbg_print("pstIpHdr->next_proto_id", (unsigned char*)&pstIpHdr->next_proto_id, sizeof(unsigned char));
+                pstIpHdr = rte_pktmbuf_mtod_offset(pstMbuf[i], struct rte_ipv4_hdr *, sizeof(struct rte_ether_hdr));
                 
 				// 维护一个arp表
 				ng_arp_entry_insert(pstIpHdr->src_addr, pstEthHdr->s_addr.addr_bytes);
@@ -164,16 +160,28 @@ static int pkt_process(void *arg)
                 }
                 else if(pstIpHdr->next_proto_id == IPPROTO_TCP)  // tcp
                 {
-                    printf("tcp_process ---\n");
+                    // printf("tcp_process ---\n");
 					tcp_process(pstMbuf[i]);
                 }
-            }   
+				else
+				{
+					rte_kni_tx_burst(g_pstKni, pstMbuf, iRxNum);
+					// printf("tcp/udp --> rte_kni_handle_request\n");
+				}
+            }
+			else 
+			{
+				// ifconfig vEth0 192.168.181.169 up
+				rte_kni_tx_burst(g_pstKni, pstMbuf, iRxNum);
+				// printf("ip --> rte_kni_handle_request\n");
+			}   
         }
 
-        // rte_kni_handle_request(g_pstKni);
+		rte_kni_handle_request(g_pstKni);
+
         // to send
         udp_out(pstMbufPool);
-        // tcp_out(pstMbufPool);
+        tcp_out(pstMbufPool);
     }
     return 0;
 }
@@ -196,25 +204,24 @@ int udp_server_entry(__attribute__((unused))  void *arg)
 
 	stLocalAddr.sin_port = htons(8889);
 	stLocalAddr.sin_family = AF_INET;
-	stLocalAddr.sin_addr.s_addr = inet_addr("192.168.1.106"); 
+	stLocalAddr.sin_addr.s_addr = inet_addr("192.168.181.169"); 
 	
 	nbind(iConnfd, (struct sockaddr*)&stLocalAddr, sizeof(stLocalAddr));
 
-	while (1) {
-
+	while (1) 
+	{
 		if (nrecvfrom(iConnfd, acBuf, D_UDP_BUFFER_SIZE, 0, 
-			(struct sockaddr*)&stClientAddr, &uiAddrLen) < 0) {
-
+			(struct sockaddr*)&stClientAddr, &uiAddrLen) < 0) 
+		{
 			continue;
-
-		} else {
-
+		} 
+		else 
+		{
 			printf("recv from %s:%d, data:%s\n", inet_ntoa(stClientAddr.sin_addr), 
 				ntohs(stClientAddr.sin_port), acBuf);
 			nsendto(iConnfd, acBuf, strlen(acBuf), 0, 
 				(struct sockaddr*)&stClientAddr, sizeof(stClientAddr));
 		}
-
 	}
 
 	nclose(iConnfd);
@@ -222,6 +229,76 @@ int udp_server_entry(__attribute__((unused))  void *arg)
     return 0;
 }
 
+#define BUFFER_SIZE	1024
+
+#ifdef ENABLE_SINGLE_EPOLL
+
+int tcp_server_entry(__attribute__((unused))  void *arg)
+{
+	int listenfd = nsocket(AF_INET, SOCK_STREAM, 0);
+	if (listenfd == -1) 
+	{
+		return -1;
+	}
+
+	struct sockaddr_in servaddr;
+	memset(&servaddr, 0, sizeof(struct sockaddr));
+	servaddr.sin_family = AF_INET;
+	servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	servaddr.sin_port = htons(9999);
+	nbind(listenfd, (struct sockaddr*)&servaddr, sizeof(servaddr));
+
+	nlisten(listenfd, 10);
+
+	int epfd = nepoll_create(1);
+	struct epoll_event ev, events[1024];
+	ev.data.fd = listenfd;
+	ev.events |= EPOLLIN;
+	nepoll_ctl(epfd, EPOLL_CTL_ADD, listenfd, &ev);
+
+	char buff[BUFFER_SIZE] = {'\0'};
+	while(1)
+	{
+		int nready = nepoll_wait(epfd, events, 1024, 5);
+		if(nready < 0)
+			continue;
+
+		for(int i = 0; i < nready; ++i)
+		{
+			int fd = events[i].data.fd;
+			if(listenfd == fd)
+			{
+				struct sockaddr_in client;
+				socklen_t len = sizeof(client);
+				int connfd = naccept(listenfd, (struct sockaddr*)&client, &len);
+
+				struct epoll_event ev;
+				ev.events = EPOLLIN;
+				ev.data.fd = connfd;
+				nepoll_ctl(epfd, EPOLL_CTL_ADD, connfd, &ev);
+			}
+			else
+			{
+				int n = nrecv(fd, buff, BUFFER_SIZE, 0); //block
+				if (n > 0) 
+				{
+					printf(" arno --> recv: %s\n", buff);
+					nsend(fd, buff, n, 0);
+				} 
+				else 
+				{
+					printf("error: %s\n", strerror(errno));
+					nepoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+					nclose(fd);
+				} 
+			}
+		}
+	}
+
+	return 0;
+}
+
+#else
 int tcp_server_entry(__attribute__((unused))  void *arg)  
 {
 	int listenfd;
@@ -265,6 +342,7 @@ int tcp_server_entry(__attribute__((unused))  void *arg)
 			} 
 			else if (n == 0) 
 			{
+				printf("nclose()\n");
 				nclose(connfd);
 				break;
 			} 
@@ -279,6 +357,8 @@ int tcp_server_entry(__attribute__((unused))  void *arg)
 
     return 0;
 }
+
+#endif
 
 int main(int argc, char *argv[]) 
 {

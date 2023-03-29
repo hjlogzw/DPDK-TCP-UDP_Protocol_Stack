@@ -11,18 +11,16 @@ int udp_process(struct rte_mbuf *pstUdpMbuf)
     pstIpHdr = rte_pktmbuf_mtod_offset(pstUdpMbuf, struct rte_ipv4_hdr *, sizeof(struct rte_ether_hdr));
 	pstUdpHdr = (struct rte_udp_hdr *)(pstIpHdr + 1);
 
-    
-	struct in_addr addr;
-	addr.s_addr = pstIpHdr->src_addr;
-	printf("udp_process ---> src: %s:%d \n", inet_ntoa(addr), ntohs(pstUdpHdr->src_port));
-	
-
     pstHost = get_hostinfo_fromip_port(pstIpHdr->dst_addr, pstUdpHdr->dst_port, pstIpHdr->next_proto_id);
     if (pstHost == NULL) 
     {
 		rte_pktmbuf_free(pstUdpMbuf);
 		return -3;
 	} 
+	
+	struct in_addr addr;
+	addr.s_addr = pstIpHdr->src_addr;
+	printf("udp_process ---> src: %s:%d \n", inet_ntoa(addr), ntohs(pstUdpHdr->src_port));
 
     pstOffLoad = rte_malloc("offload", sizeof(struct offload), 0);
 	if (pstOffLoad == NULL) 
@@ -120,7 +118,6 @@ static struct rte_mbuf * ng_udp_pkt(struct rte_mempool *mbuf_pool, uint32_t sip,
 		data, uiTotalLen);
 
 	return pstMbuf;
-
 }
 
 int udp_out(struct rte_mempool *pstMbufPool) 
@@ -129,7 +126,7 @@ int udp_out(struct rte_mempool *pstMbufPool)
 
     for(pstHost = g_pstHost; pstHost != NULL; pstHost = pstHost->next)
     {
-        struct offload *pstOffLoad;
+        struct offload *pstOffLoad = NULL;
         int iSendCnt = rte_ring_mc_dequeue(pstHost->sndbuf, (void **)&pstOffLoad);
         if(iSendCnt < 0) 
             continue;
@@ -139,7 +136,7 @@ int udp_out(struct rte_mempool *pstMbufPool)
 		printf("udp_out ---> src: %s:%d \n", inet_ntoa(addr), ntohs(pstOffLoad->dport));
 
         unsigned char *dstmac = ng_get_dst_macaddr(pstOffLoad->dip); // 查询对端mac地址
-		if (dstmac == NULL)  // 先发个arp包确定对端mac地址
+		if (dstmac == NULL)  // 先广播发个arp包确定对端mac地址
         {
 			struct rte_mbuf *pstArpbuf = ng_send_arp(pstMbufPool, RTE_ARP_OP_REQUEST, g_aucDefaultArpMac, 
 				pstOffLoad->sip, pstOffLoad->dip);
@@ -155,6 +152,11 @@ int udp_out(struct rte_mempool *pstMbufPool)
                     dstmac, pstOffLoad->data, pstOffLoad->length);
 
 			rte_ring_mp_enqueue_burst(g_pstRingIns->pstOutRing, (void **)&pstUdpbuf, 1, NULL);
+
+			if (pstOffLoad->data != NULL)
+				rte_free(pstOffLoad->data);
+			
+			rte_free(pstOffLoad);
 		}
     }
 

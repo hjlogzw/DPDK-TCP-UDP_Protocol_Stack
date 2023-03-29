@@ -81,7 +81,6 @@ struct tcp_fragment
 
 	unsigned char *data;
 	uint32_t length;
-
 };
 
 

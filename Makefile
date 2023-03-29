@@ -9,8 +9,9 @@ SRCS-y += common.c
 SRCS-y += tcp.c
 SRCS-y += udp.c
 CFLAGS += -Wall -g
+# CFLAGS += -D ENABLE_SINGLE_EPOLL
 CFLAGS += -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast -Wformat=0
-LDLIBS += -lnspsmapi -lpthread
+LDLIBS += -lpthread
 
 INC += $(sort $(wildcard *.h))
 

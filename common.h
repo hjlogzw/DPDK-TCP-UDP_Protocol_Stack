@@ -9,6 +9,8 @@
 #include <netinet/in.h>
 #include <pthread.h>
 
+#include "nty_tree.h"
+
 #include <rte_eal.h>
 #include <rte_ethdev.h>
 #include <rte_mbuf.h>
@@ -82,6 +84,85 @@ struct arp_table
 	pthread_spinlock_t spinlock;
 };
 
+enum EPOLL_EVENTS 
+{
+	EPOLLNONE 	= 0x0000,
+	EPOLLIN 	= 0x0001,
+	EPOLLPRI	= 0x0002,
+	EPOLLOUT	= 0x0004,
+	EPOLLRDNORM = 0x0040,
+	EPOLLRDBAND = 0x0080,
+	EPOLLWRNORM = 0x0100,
+	EPOLLWRBAND = 0x0200,
+	EPOLLMSG	= 0x0400,
+	EPOLLERR	= 0x0008,
+	EPOLLHUP 	= 0x0010,
+	EPOLLRDHUP 	= 0x2000,
+	EPOLLONESHOT = (1 << 30),
+	EPOLLET 	= (1 << 31)
+
+};
+
+#define EPOLL_CTL_ADD	1
+#define EPOLL_CTL_DEL	2
+#define EPOLL_CTL_MOD	3
+
+typedef union epoll_data 
+{
+	void *ptr;
+	int fd;
+	uint32_t u32;
+	uint64_t u64;
+} epoll_data_t;
+
+struct epoll_event 
+{
+	uint32_t events;
+	epoll_data_t data;
+};
+
+struct epitem 
+{
+	RB_ENTRY(epitem) rbn;
+	LIST_ENTRY(epitem) rdlink;
+	int rdy; //exist in list 
+	
+	int sockfd;
+	struct epoll_event event; 
+};
+
+static int sockfd_cmp(struct epitem *ep1, struct epitem *ep2) 
+{
+	if (ep1->sockfd < ep2->sockfd) return -1;
+	else if (ep1->sockfd == ep2->sockfd) return 0;
+	return 1;
+}
+
+RB_HEAD(_epoll_rb_socket, epitem);
+RB_GENERATE_STATIC(_epoll_rb_socket, epitem, rbn, sockfd_cmp);
+
+typedef struct _epoll_rb_socket ep_rb_tree;
+
+struct eventpoll 
+{
+	int fd;
+
+	ep_rb_tree rbr;
+	int rbcnt;
+	
+	LIST_HEAD( ,epitem) rdlist;
+	int rdnum;
+
+	int waiting;
+
+	pthread_mutex_t mtx; //rbtree update
+	pthread_spinlock_t lock; //rdlist update
+	
+	pthread_cond_t cond; //block for event
+	pthread_mutex_t cdmtx; //mutex for cond
+	
+};
+
 extern struct St_InOut_Ring *g_pstRingIns;
 extern unsigned char g_ucFdTable[D_MAX_FD_COUNT];
 extern struct localhost *g_pstHost;
@@ -117,5 +198,12 @@ ssize_t nrecvfrom(int sockfd, void *buf, size_t len, __attribute__((unused))  in
 ssize_t nsendto(int sockfd, const void *buf, size_t len, __attribute__((unused))  int flags,
                       const struct sockaddr *dest_addr, __attribute__((unused))  socklen_t addrlen);
 int nclose(int fd);
+
+// epoll
+int epoll_event_callback(struct eventpoll *ep, int sockid, uint32_t event);
+int nepoll_create(int size);
+int nepoll_ctl(int epfd, int op, int sockid, struct epoll_event *event);
+int nepoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout);
+
 
 #endif
