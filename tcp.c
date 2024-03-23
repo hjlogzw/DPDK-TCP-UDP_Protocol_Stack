@@ -390,11 +390,7 @@ int tcp_process(struct rte_mbuf *pstTcpMbuf)
 		{ 
 			int tcplen = ntohs(pstIpHdr->total_length) - sizeof(struct rte_ipv4_hdr);
 			tcp_handle_established(pstTcpStream, pstTcpHdr, tcplen);
-<<<<<<< HEAD
-			// printf("tcplen = %d\n", tcplen);
-=======
 			printf("tcplen = %d\n", tcplen);
->>>>>>> c472b4b5fbedc52450a9bd050d196d2515ca995f
 			break;
 		}
 		case TCP_STATUS_FIN_WAIT_1: //  ~client
