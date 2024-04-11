@@ -6,6 +6,10 @@
 #include "tcp.h"
 #include "udp.h"
 
+#define MAKE_IPV4_ADDR(a, b, c, d) (a + (b<<8) + (c<<16) + (d<<24))
+
+static uint32_t gLocalIp = MAKE_IPV4_ADDR(192, 168, 100, 77);
+
 struct rte_ether_addr g_stCpuMac;
 struct rte_kni *g_pstKni;                    // todo：后续将全局变量统一初始化，不再使用getInstance()
 struct St_InOut_Ring *g_pstRingIns = NULL;   // todo：后续将全局变量统一初始化，不再使用getInstance()
@@ -133,6 +137,7 @@ static int pkt_process(void *arg)
     int iRxNum;
 	int i;
 	struct rte_ether_hdr *pstEthHdr;
+	struct rte_arp_hdr *pstArpHdr;
     struct rte_ipv4_hdr *pstIpHdr;
 
     pstMbufPool = (struct rte_mempool *)arg;
@@ -147,12 +152,29 @@ static int pkt_process(void *arg)
         for(i = 0; i < iRxNum; ++i)
         {
             pstEthHdr = rte_pktmbuf_mtod_offset(pstMbuf[i], struct rte_ether_hdr *, 0);
+
+			if (pstEthHdr->ether_type == rte_cpu_to_be_16(RTE_ETHER_TYPE_ARP)){
+				pstArpHdr = rte_pktmbuf_mtod_offset(pstMbuf[i], struct rte_arp_hdr *, 
+					sizeof(struct rte_ether_hdr));
+
+				struct in_addr addr;
+				addr.s_addr = pstArpHdr->arp_data.arp_tip;
+				printf("arp ---> src: %s ", inet_ntoa(addr));
+
+				addr.s_addr = gLocalIp;
+				printf(" local: %s \n", inet_ntoa(addr));
+
+				if (pstArpHdr->arp_data.arp_tip == gLocalIp){
+					ng_arp_entry_insert(pstIpHdr->src_addr, pstEthHdr->s_addr.addr_bytes);
+				}
+			}
+
             if (pstEthHdr->ether_type == rte_cpu_to_be_16(RTE_ETHER_TYPE_IPV4))   //IPv4: 0800 
             {
                 pstIpHdr = rte_pktmbuf_mtod_offset(pstMbuf[i], struct rte_ipv4_hdr *, sizeof(struct rte_ether_hdr));
                 
 				// 维护一个arp表
-				ng_arp_entry_insert(pstIpHdr->src_addr, pstEthHdr->s_addr.addr_bytes);
+				// ng_arp_entry_insert(pstIpHdr->src_addr, pstEthHdr->s_addr.addr_bytes);
                 if(pstIpHdr->next_proto_id == IPPROTO_UDP) // udp 
                 {
                     // udp process
@@ -204,7 +226,7 @@ int udp_server_entry(__attribute__((unused))  void *arg)
 
 	stLocalAddr.sin_port = htons(8889);
 	stLocalAddr.sin_family = AF_INET;
-	stLocalAddr.sin_addr.s_addr = inet_addr("192.168.181.169"); 
+	stLocalAddr.sin_addr.s_addr = inet_addr("192.168.100.77"); 
 	
 	nbind(iConnfd, (struct sockaddr*)&stLocalAddr, sizeof(stLocalAddr));
 
@@ -384,13 +406,11 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-    if (-1 == rte_kni_init(D_PORT_ID)) 
+    if (rte_kni_init(D_PORT_ID) < 0) 
         rte_exit(EXIT_FAILURE, "kni init failed\n");
     
 	ng_init_port(pstMbufPoolPub);
 	g_pstKni = ng_alloc_kni(pstMbufPoolPub);
-
-    // ng_init_port(pstMbufPoolPub);
 
     rte_eth_macaddr_get(D_PORT_ID, &g_stCpuMac);
 
@@ -409,8 +429,8 @@ int main(int argc, char *argv[])
     uiCoreId = rte_get_next_lcore(uiCoreId, 1, 0);
 	rte_eal_remote_launch(udp_server_entry, pstMbufPoolPub, uiCoreId);
 	
-    uiCoreId = rte_get_next_lcore(uiCoreId, 1, 0);
-    rte_eal_remote_launch(tcp_server_entry, pstMbufPoolPub, uiCoreId);
+    // uiCoreId = rte_get_next_lcore(uiCoreId, 1, 0);
+    // rte_eal_remote_launch(tcp_server_entry, pstMbufPoolPub, uiCoreId);
 
     while (1) 
     {
