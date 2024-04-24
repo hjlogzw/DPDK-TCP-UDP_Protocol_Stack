@@ -1,14 +1,15 @@
-dep_tcp.o = /mnt/hj/codeTest/test_netfamily/tcp.c /usr/include/stdc-predef.h \
+dep_tcp.o = /mnt/hj/codeTest/stack_finaly/DPDK-TCP-UDP_Protocol_Stack/tcp.c \
+ /usr/include/stdc-predef.h \
  /media/dpdk-stable-19.11.12/x86_64-native-linuxapp-gcc/include/rte_config.h \
- /mnt/hj/codeTest/test_netfamily/tcp.h \
- /mnt/hj/codeTest/test_netfamily/common.h /usr/include/stdio.h \
- /usr/include/features.h /usr/include/sys/cdefs.h \
+ /mnt/hj/codeTest/stack_finaly/DPDK-TCP-UDP_Protocol_Stack/tcp.h \
+ /mnt/hj/codeTest/stack_finaly/DPDK-TCP-UDP_Protocol_Stack/common.h \
+ /usr/include/stdio.h /usr/include/features.h /usr/include/sys/cdefs.h \
  /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h \
  /usr/include/gnu/stubs-64.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/stddef.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/stddef.h \
  /usr/include/bits/types.h /usr/include/bits/typesizes.h \
  /usr/include/libio.h /usr/include/_G_config.h /usr/include/wchar.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/stdarg.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/stdarg.h \
  /usr/include/bits/stdio_lim.h /usr/include/bits/sys_errlist.h \
  /usr/include/stdlib.h /usr/include/bits/waitflags.h \
  /usr/include/bits/waitstatus.h /usr/include/endian.h \
@@ -24,7 +25,7 @@ dep_tcp.o = /mnt/hj/codeTest/test_netfamily/tcp.c /usr/include/stdc-predef.h \
  /usr/include/bits/nan.h /usr/include/bits/mathdef.h \
  /usr/include/bits/mathcalls.h /usr/include/string.h \
  /usr/include/arpa/inet.h /usr/include/netinet/in.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/stdint.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/stdint.h \
  /usr/include/stdint.h /usr/include/bits/wchar.h \
  /usr/include/sys/socket.h /usr/include/sys/uio.h /usr/include/bits/uio.h \
  /usr/include/bits/socket.h /usr/include/bits/socket_type.h \
@@ -33,6 +34,7 @@ dep_tcp.o = /mnt/hj/codeTest/test_netfamily/tcp.c /usr/include/stdc-predef.h \
  /usr/include/asm-generic/sockios.h /usr/include/bits/in.h \
  /usr/include/pthread.h /usr/include/sched.h /usr/include/bits/sched.h \
  /usr/include/bits/timex.h /usr/include/bits/setjmp.h \
+ /mnt/hj/codeTest/stack_finaly/DPDK-TCP-UDP_Protocol_Stack/nty_tree.h \
  /media/dpdk-stable-19.11.12/x86_64-native-linuxapp-gcc/include/rte_eal.h \
  /media/dpdk-stable-19.11.12/x86_64-native-linuxapp-gcc/include/rte_config.h \
  /media/dpdk-stable-19.11.12/x86_64-native-linuxapp-gcc/include/rte_compat.h \
@@ -44,8 +46,8 @@ dep_tcp.o = /mnt/hj/codeTest/test_netfamily/tcp.c /usr/include/stdc-predef.h \
  /usr/include/ctype.h /usr/include/errno.h /usr/include/bits/errno.h \
  /usr/include/linux/errno.h /usr/include/asm/errno.h \
  /usr/include/asm-generic/errno.h /usr/include/asm-generic/errno-base.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include-fixed/limits.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include-fixed/syslimits.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/limits.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/syslimits.h \
  /usr/include/limits.h /usr/include/bits/posix1_lim.h \
  /usr/include/bits/local_lim.h /usr/include/linux/limits.h \
  /usr/include/bits/posix2_lim.h /usr/include/bits/xopen_lim.h \
@@ -61,59 +63,79 @@ dep_tcp.o = /mnt/hj/codeTest/test_netfamily/tcp.c /usr/include/stdc-predef.h \
  /media/dpdk-stable-19.11.12/x86_64-native-linuxapp-gcc/include/rte_memcpy.h \
  /media/dpdk-stable-19.11.12/x86_64-native-linuxapp-gcc/include/rte_vect.h \
  /media/dpdk-stable-19.11.12/x86_64-native-linuxapp-gcc/include/generic/rte_vect.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/x86intrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/ia32intrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/mmintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/xmmintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/mm_malloc.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/emmintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/pmmintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/tmmintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/ammintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/smmintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/popcntintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/wmmintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/immintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/avxintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/avx2intrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/avx512fintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/avx512erintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/avx512pfintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/avx512cdintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/avx512vlintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/avx512bwintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/avx512dqintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/avx512vlbwintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/avx512vldqintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/avx512ifmaintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/avx512ifmavlintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/avx512vbmiintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/avx512vbmivlintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/shaintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/lzcntintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/bmiintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/bmi2intrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/fmaintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/f16cintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/rtmintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/xtestintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/mm3dnow.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/prfchwintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/fma4intrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/xopintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/lwpintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/tbmintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/rdseedintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/fxsrintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/xsaveintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/xsaveoptintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/adxintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/clwbintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/pcommitintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/clflushoptintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/xsavesintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/xsavecintrin.h \
- /usr/local/gcc/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/include/mwaitxintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/x86intrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/ia32intrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/immintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/mmintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/xmmintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/mm_malloc.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/emmintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/pmmintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/tmmintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/smmintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/popcntintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/wmmintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/fxsrintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/xsaveintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/xsaveoptintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/xsavesintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/xsavecintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/avxintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/avx2intrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/avx512fintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/avx512erintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/avx512pfintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/avx512cdintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/avx512vlintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/avx512bwintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/avx512dqintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/avx512vlbwintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/avx512vldqintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/avx512ifmaintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/avx512ifmavlintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/avx512vbmiintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/avx512vbmivlintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/avx5124fmapsintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/avx5124vnniwintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/avx512vpopcntdqintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/avx512vbmi2intrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/avx512vbmi2vlintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/avx512vnniintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/avx512vnnivlintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/avx512vpopcntdqvlintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/avx512bitalgintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/shaintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/lzcntintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/bmiintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/bmi2intrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/fmaintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/f16cintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/rtmintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/xtestintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/cetintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/gfniintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/vaesintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/vpclmulqdqintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/movdirintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/sgxintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/pconfigintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/waitpkgintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/cldemoteintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/rdseedintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/prfchwintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/adxintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/clwbintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/clflushoptintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/wbnoinvdintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/pkuintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/mm3dnow.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/fma4intrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/ammintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/xopintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/lwpintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/tbmintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/mwaitxintrin.h \
+ /opt/rh/devtoolset-9/root/usr/lib/gcc/x86_64-redhat-linux/9/include/clzerointrin.h \
  /media/dpdk-stable-19.11.12/x86_64-native-linuxapp-gcc/include/rte_random.h \
  /media/dpdk-stable-19.11.12/x86_64-native-linuxapp-gcc/include/rte_mbuf.h \
  /media/dpdk-stable-19.11.12/x86_64-native-linuxapp-gcc/include/rte_mempool.h \

@@ -11,7 +11,11 @@
       "cwd": "e:/codeTest/stack_finaly/DPDK-TCP-UDP_Protocol_Stack",
       "program": "e:/codeTest/stack_finaly/DPDK-TCP-UDP_Protocol_Stack/build/Debug/outDebug",
       "MIMode": "gdb",
+<<<<<<< Updated upstream
       "miDebuggerPath": "D:/DevC++/DevCpp/MinGW64/bin/gdb.exe",
+=======
+      "miDebuggerPath": "gdb",
+>>>>>>> Stashed changes
       "setupCommands": [
         {
           "description": "Enable pretty-printing for gdb",

@@ -1,456 +1,81 @@
-#include <stdio.h>
-#include <math.h>
-#include <arpa/inet.h>
+#include "dpdk_common.h"
+#include "arp.h"
 
-#include "common.h"
-#include "tcp.h"
-#include "udp.h"
+static uint8_t gSrcMac[RTE_ETHER_ADDR_LEN]; 
+struct RING_CONF ringInstance;
 
-#define MAKE_IPV4_ADDR(a, b, c, d) (a + (b<<8) + (c<<16) + (d<<24))
+void pkg_process(void *arg){
+	struct rte_mempool *mbuf_pool = (struct rte_mempool *)arg;
 
-static uint32_t gLocalIp = MAKE_IPV4_ADDR(192, 168, 100, 77);
-
-struct rte_ether_addr g_stCpuMac;
-struct rte_kni *g_pstKni;                    // todo：后续将全局变量统一初始化，不再使用getInstance()
-struct St_InOut_Ring *g_pstRingIns = NULL;   // todo：后续将全局变量统一初始化，不再使用getInstance()
-struct localhost *g_pstHost = NULL;          // todo：后续将全局变量统一初始化，不再使用getInstance()
-struct arp_table *g_pstArpTbl = NULL;        // todo：后续将全局变量统一初始化，不再使用getInstance()
-struct tcp_table *g_pstTcpTbl = NULL;		 // todo：后续将全局变量统一初始化，不再使用getInstance()
-
-unsigned char g_aucDefaultArpMac[RTE_ETHER_ADDR_LEN] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-
-unsigned char g_ucFdTable[D_MAX_FD_COUNT] = {0};
-
-static struct St_InOut_Ring *ringInstance(void) 
-{
-	if (g_pstRingIns == NULL) 
-    {
-		g_pstRingIns = rte_malloc("in/out ring", sizeof(struct St_InOut_Ring), 0);
-		memset(g_pstRingIns, 0, sizeof(struct St_InOut_Ring));
-	}
-
-	return g_pstRingIns;
-}
-
-void ng_init_port(struct rte_mempool *pstMbufPoolPub)
-{
-    unsigned int uiPortsNum;
-    const int iRxQueueNum = 1;
-	const int iTxQueueNum = 1;
-    int iRet;
-    struct rte_eth_dev_info stDevInfo;
-    struct rte_eth_txconf stTxConf;
-    struct rte_eth_conf stPortConf =    // 端口配置信息
-    {
-        .rxmode = {.max_rx_pkt_len = 1518 }   // RTE_ETHER_MAX_LEN = 1518
-    };
-    
-    uiPortsNum = rte_eth_dev_count_avail(); 
-	if (uiPortsNum == 0) 
-		rte_exit(EXIT_FAILURE, "No Supported eth found\n");
-
-	rte_eth_dev_info_get(D_PORT_ID, &stDevInfo); 
+	while(1){
+		struct rte_mbuf *mbufs[32];
+		unsigned rxNum = rte_ring_mc_dequeue_burst(ringInstance.inRing, (void **)mbufs, 32, NULL);
 	
-    // 配置以太网设备
-	rte_eth_dev_configure(D_PORT_ID, iRxQueueNum, iTxQueueNum, &stPortConf);
+		for (unsigned i = 0; i < rxNum; i++){
+			struct rte_ether_hdr *ether = rte_pktmbuf_mtod(mbufs[i], struct rte_ether_hdr*);
 
-    iRet = rte_eth_rx_queue_setup(D_PORT_ID, 0 , 1024, rte_eth_dev_socket_id(D_PORT_ID), NULL, pstMbufPoolPub);
-	if(iRet < 0) 
-	    rte_exit(EXIT_FAILURE, "Could not setup RX queue!\n");
+			if (ether->ether_type == rte_cpu_to_be_16(RTE_ETHER_TYPE_IPV4)) {
+				struct rte_ipv4_hdr *ip = rte_pktmbuf_mtod_offset(mbufs[i], struct rte_ipv4_hdr *, sizeof(struct  rte_ether_hdr));
 
-	stTxConf = stDevInfo.default_txconf;
-	stTxConf.offloads = stPortConf.txmode.offloads;
-    iRet = rte_eth_tx_queue_setup(D_PORT_ID, 0 , 1024, rte_eth_dev_socket_id(D_PORT_ID), &stTxConf);
-	if (iRet < 0) 
-		rte_exit(EXIT_FAILURE, "Could not setup TX queue\n");
+				// todo 处理arp
 
-	if (rte_eth_dev_start(D_PORT_ID) < 0 )
-		rte_exit(EXIT_FAILURE, "Could not start\n");
-    
-    rte_eth_promiscuous_enable(D_PORT_ID);
-}
-
-static int ng_config_network_if(uint16_t port_id, unsigned char if_up) {
-
-	if (!rte_eth_dev_is_valid_port(port_id)) {
-		return -EINVAL;
-	}
-
-	int ret = 0;
-	if (if_up) {
-
-		rte_eth_dev_stop(port_id);
-		ret = rte_eth_dev_start(port_id);
-
-	} else {
-
-		rte_eth_dev_stop(port_id);
-
-	}
-
-	if (ret < 0) {
-		printf("Failed to start port : %d\n", port_id);
-	}
-
-	return 0;
-}
-
-static struct rte_kni *ng_alloc_kni(struct rte_mempool *mbuf_pool) {
-
-	struct rte_kni *kni_hanlder = NULL;
-	
-	struct rte_kni_conf conf;
-	memset(&conf, 0, sizeof(conf));
-
-	snprintf(conf.name, RTE_KNI_NAMESIZE, "vEth%u", D_PORT_ID);
-	conf.group_id = D_PORT_ID;
-	conf.mbuf_size = D_MAX_PACKET_SIZE;
-	rte_eth_macaddr_get(D_PORT_ID, (struct rte_ether_addr *)conf.mac_addr);
-	rte_eth_dev_get_mtu(D_PORT_ID, &conf.mtu);
-
-	// print_ethaddr("ng_alloc_kni: ", (struct ether_addr *)conf.mac_addr);
-
-/*
-	struct rte_eth_dev_info dev_info;
-	memset(&dev_info, 0, sizeof(dev_info));
-	rte_eth_dev_info_get(D_PORT_ID, &dev_info);
-	*/
-
-
-	struct rte_kni_ops ops;
-	memset(&ops, 0, sizeof(ops));
-
-	ops.port_id = D_PORT_ID;
-	ops.config_network_if = ng_config_network_if;
-	
-	kni_hanlder = rte_kni_alloc(mbuf_pool, &conf, &ops);	
-	if (!kni_hanlder) {
-		rte_exit(EXIT_FAILURE, "Failed to create kni for port : %d\n", D_PORT_ID);
-	}
-	
-	return kni_hanlder;
-}
-
-static int pkt_process(void *arg)
-{
-    struct rte_mempool *pstMbufPool;
-    int iRxNum;
-	int i;
-	struct rte_ether_hdr *pstEthHdr;
-	struct rte_arp_hdr *pstArpHdr;
-    struct rte_ipv4_hdr *pstIpHdr;
-
-    pstMbufPool = (struct rte_mempool *)arg;
-    while(1)
-    {
-		struct rte_mbuf *pstMbuf[32];
-        iRxNum = rte_ring_mc_dequeue_burst(g_pstRingIns->pstInRing, (void**)pstMbuf, D_BURST_SIZE, NULL);
-        
-        if(iRxNum <= 0)
-			continue;
-        
-        for(i = 0; i < iRxNum; ++i)
-        {
-            pstEthHdr = rte_pktmbuf_mtod_offset(pstMbuf[i], struct rte_ether_hdr *, 0);
-
-			if (pstEthHdr->ether_type == rte_cpu_to_be_16(RTE_ETHER_TYPE_ARP)){
-				pstArpHdr = rte_pktmbuf_mtod_offset(pstMbuf[i], struct rte_arp_hdr *, 
-					sizeof(struct rte_ether_hdr));
-
-				struct in_addr addr;
-				addr.s_addr = pstArpHdr->arp_data.arp_tip;
-				printf("arp ---> src: %s ", inet_ntoa(addr));
-
-				addr.s_addr = gLocalIp;
-				printf(" local: %s \n", inet_ntoa(addr));
-
-				if (pstArpHdr->arp_data.arp_tip == gLocalIp){
-					ng_arp_entry_insert(pstIpHdr->src_addr, pstEthHdr->s_addr.addr_bytes);
+				if (ip->next_proto_id == IPPROTO_UDP){
+					// todo 处理UDP
+				} else if (ip->next_proto_id == IPPROTO_TCP){
+					// todo 处理UDP
+				} else {
+					// todo 使用kni处理其他协议
 				}
+			} else {
+				// todo 使用kni处理其他协议
 			}
-
-            if (pstEthHdr->ether_type == rte_cpu_to_be_16(RTE_ETHER_TYPE_IPV4))   //IPv4: 0800 
-            {
-                pstIpHdr = rte_pktmbuf_mtod_offset(pstMbuf[i], struct rte_ipv4_hdr *, sizeof(struct rte_ether_hdr));
-                
-				// 维护一个arp表
-				// ng_arp_entry_insert(pstIpHdr->src_addr, pstEthHdr->s_addr.addr_bytes);
-                if(pstIpHdr->next_proto_id == IPPROTO_UDP) // udp 
-                {
-                    // udp process
-                    udp_process(pstMbuf[i]);
-                }
-                else if(pstIpHdr->next_proto_id == IPPROTO_TCP)  // tcp
-                {
-                    // printf("tcp_process ---\n");
-					tcp_process(pstMbuf[i]);
-                }
-				else
-				{
-					rte_kni_tx_burst(g_pstKni, pstMbuf, iRxNum);
-					// printf("tcp/udp --> rte_kni_handle_request\n");
-				}
-            }
-			else 
-			{
-				// ifconfig vEth0 192.168.181.169 up
-				rte_kni_tx_burst(g_pstKni, pstMbuf, iRxNum);
-				// printf("ip --> rte_kni_handle_request\n");
-			}   
-        }
-
-		rte_kni_handle_request(g_pstKni);
-
-        // to send
-        udp_out(pstMbufPool);
-        tcp_out(pstMbufPool);
-    }
-    return 0;
-}
-
-int udp_server_entry(__attribute__((unused))  void *arg) 
-{           
-    int iConnfd;
-	struct sockaddr_in stLocalAddr, stClientAddr; 
-	socklen_t uiAddrLen = sizeof(stClientAddr);;
-	char acBuf[D_UDP_BUFFER_SIZE] = {0};
-
-	iConnfd = nsocket(AF_INET, SOCK_DGRAM, 0);
-	if (iConnfd == -1) 
-	{
-		printf("nsocket failed\n");
-		return -1;
-	} 
-
-	memset(&stLocalAddr, 0, sizeof(struct sockaddr_in));
-
-	stLocalAddr.sin_port = htons(8889);
-	stLocalAddr.sin_family = AF_INET;
-	stLocalAddr.sin_addr.s_addr = inet_addr("192.168.100.77"); 
-	
-	nbind(iConnfd, (struct sockaddr*)&stLocalAddr, sizeof(stLocalAddr));
-
-	while (1) 
-	{
-		if (nrecvfrom(iConnfd, acBuf, D_UDP_BUFFER_SIZE, 0, 
-			(struct sockaddr*)&stClientAddr, &uiAddrLen) < 0) 
-		{
-			continue;
-		} 
-		else 
-		{
-			printf("recv from %s:%d, data:%s\n", inet_ntoa(stClientAddr.sin_addr), 
-				ntohs(stClientAddr.sin_port), acBuf);
-			nsendto(iConnfd, acBuf, strlen(acBuf), 0, 
-				(struct sockaddr*)&stClientAddr, sizeof(stClientAddr));
 		}
+		
 	}
 
-	nclose(iConnfd);
-
-    return 0;
 }
 
-#define BUFFER_SIZE	1024
 
-#ifdef ENABLE_SINGLE_EPOLL
-
-int tcp_server_entry(__attribute__((unused))  void *arg)
-{
-	int listenfd = nsocket(AF_INET, SOCK_STREAM, 0);
-	if (listenfd == -1) 
-	{
-		return -1;
+int main(int argc, char *argv[]){
+	if (rte_eal_init(argc, argv) < 0) {
+		rte_exit(EXIT_FAILURE, "Error with EAL init\n");
 	}
 
-	struct sockaddr_in servaddr;
-	memset(&servaddr, 0, sizeof(struct sockaddr));
-	servaddr.sin_family = AF_INET;
-	servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-	servaddr.sin_port = htons(9999);
-	nbind(listenfd, (struct sockaddr*)&servaddr, sizeof(servaddr));
+	struct rte_mempool *mbuf_pool = rte_pktmbuf_pool_create("mbufpool", MBUF_NUM, 0,0,RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id());
+	if (mbuf_pool == NULL) {
+		rte_exit(EXIT_FAILURE, "Could not create mbuf pool\n");
+	}
 
-	nlisten(listenfd, 10);
+	init_port(mbuf_pool, DPDK_PORT_ID);
 
-	int epfd = nepoll_create(1);
-	struct epoll_event ev, events[1024];
-	ev.data.fd = listenfd;
-	ev.events |= EPOLLIN;
-	nepoll_ctl(epfd, EPOLL_CTL_ADD, listenfd, &ev);
+	rte_eth_macaddr_get(DPDK_PORT_ID, (struct rte_ether_addr*)gSrcMac);
 
-	char buff[BUFFER_SIZE] = {'\0'};
-	while(1)
-	{
-		int nready = nepoll_wait(epfd, events, 1024, 5);
-		if(nready < 0)
-			continue;
+	// todo udp/tcp公用io
+	ringInstance.inRing = rte_ring_create("in ring", RING_SIZE, rte_socket_id(), RING_F_SP_ENQ | RING_F_SC_DEQ);
+	ringInstance.outRing = rte_ring_create("out ring", RING_SIZE, rte_socket_id(), RING_F_SP_ENQ | RING_F_SC_DEQ);
 
-		for(int i = 0; i < nready; ++i)
-		{
-			int fd = events[i].data.fd;
-			if(listenfd == fd)
-			{
-				struct sockaddr_in client;
-				socklen_t len = sizeof(client);
-				int connfd = naccept(listenfd, (struct sockaddr*)&client, &len);
+	// todo 后续每个线程绑核，单独分配线程池
+	rte_eal_remote_launch(pkg_process, mbuf_pool, rte_get_next_lcore(rte_lcore_id, 1, 0));
 
-				struct epoll_event ev;
-				ev.events = EPOLLIN;
-				ev.data.fd = connfd;
-				nepoll_ctl(epfd, EPOLL_CTL_ADD, connfd, &ev);
-			}
-			else
-			{
-				int n = nrecv(fd, buff, BUFFER_SIZE, 0); //block
-				if (n > 0) 
-				{
-					printf(" arno --> recv: %s\n", buff);
-					nsend(fd, buff, n, 0);
-				} 
-				else 
-				{
-					printf("error: %s\n", strerror(errno));
-					nepoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
-					nclose(fd);
-				} 
+	// todo 收发包逻辑不放到主逻辑，各自分开
+	while(1){
+		struct rte_mbuf *rxMbuf[32];
+		uint16_t rxNum = rte_eth_rx_burst(DPDK_PORT_ID, 0, rxMbuf, 32); 
+		if (rxNum > 32) {
+			rte_exit(EXIT_FAILURE, "Error receiving from eth\n");
+		} else if (rxNum > 0)  {
+			rte_ring_sp_enqueue_burst(ringInstance.inRing, (void **)rxMbuf, rxNum, NULL);
+		}
+
+		struct rte_mbuf *txMbuf[32];
+		uint16_t txNum = rte_ring_sc_dequeue_burst(ringInstance.outRing, (void **)txMbuf, 32, NULL);
+		if (txNum > 0) {
+			rte_eth_tx_burst(DPDK_PORT_ID, 0, txMbuf, txNum);
+
+			for (unsigned i = 0;i < txNum; i ++) {
+				rte_pktmbuf_free(txMbuf[i]);
 			}
 		}
 	}
-
-	return 0;
 }
 
-#else
-int tcp_server_entry(__attribute__((unused))  void *arg)  
-{
-	int listenfd;
-	int iRet = -1;
-	struct sockaddr_in servaddr;
-	
-	listenfd = nsocket(AF_INET, SOCK_STREAM, 0);
-	if (listenfd == -1) 
-	{
-		printf("[%s][%d] nsocket error!\n", __FUNCTION__, __LINE__);
-		return -1;
-	}
-
-	memset(&servaddr, 0, sizeof(struct sockaddr));
-	servaddr.sin_family = AF_INET;
-	servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-	servaddr.sin_port = htons(9999);
-	iRet = nbind(listenfd, (struct sockaddr*)&servaddr, sizeof(servaddr));
-	if(iRet < 0)
-	{
-		printf("nbind error!\n");
-		return -1;
-	}
-
-	nlisten(listenfd, 10);
-
-	while (1) 
-	{
-		struct sockaddr_in client;
-		socklen_t len = sizeof(client);
-		int connfd = naccept(listenfd, (struct sockaddr*)&client, &len);
-
-		char buff[D_TCP_BUFFER_SIZE] = {0};
-		while (1) 
-		{
-			int n = nrecv(connfd, buff, D_TCP_BUFFER_SIZE, 0); //block
-			if (n > 0) 
-			{
-				printf("recv: %s\n", buff);
-				nsend(connfd, buff, n, 0);
-			} 
-			else if (n == 0) 
-			{
-				printf("nclose()\n");
-				nclose(connfd);
-				break;
-			} 
-			else 
-			{ //nonblock
-
-			}
-		}
-
-	}
-	nclose(listenfd);
-
-    return 0;
-}
-
-#endif
-
-int main(int argc, char *argv[]) 
-{
-    struct rte_mempool *pstMbufPoolPub;
-    struct St_InOut_Ring *pstRing;
-    struct rte_mbuf *pstRecvMbuf[32] = {NULL};
-    struct rte_mbuf *pstSendMbuf[32] = {NULL};
-    int iRxNum;
-    int iTotalNum;
-    int iOffset;
-    int iTxNum;
-
-    unsigned int uiCoreId;
-
-    if(rte_eal_init(argc, argv) < 0)
-	    rte_exit(EXIT_FAILURE, "Error with EAL init\n");	
-
-    pstMbufPoolPub = rte_pktmbuf_pool_create("MBUF_POOL_PUB", D_NUM_MBUFS, 0, 0, 
-        RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id());
-	if(pstMbufPoolPub == NULL)
-	{
-		printf("rte_errno = %x, errmsg = %s\n", rte_errno, rte_strerror(rte_errno));
-		return -1;
-	}
-
-    if (rte_kni_init(D_PORT_ID) < 0) 
-        rte_exit(EXIT_FAILURE, "kni init failed\n");
-    
-	ng_init_port(pstMbufPoolPub);
-	g_pstKni = ng_alloc_kni(pstMbufPoolPub);
-
-    rte_eth_macaddr_get(D_PORT_ID, &g_stCpuMac);
-
-    pstRing = ringInstance();
-	if(pstRing == NULL) 
-		rte_exit(EXIT_FAILURE, "ring buffer init failed\n");
-
-    pstRing->pstInRing = rte_ring_create("in ring", D_RING_SIZE, rte_socket_id(), RING_F_SP_ENQ | RING_F_SC_DEQ);
-    pstRing->pstOutRing = rte_ring_create("out ring", D_RING_SIZE, rte_socket_id(), RING_F_SP_ENQ | RING_F_SC_DEQ);
-	
-    uiCoreId = rte_lcore_id();
-
-    uiCoreId = rte_get_next_lcore(uiCoreId, 1, 0);
-	rte_eal_remote_launch(pkt_process, pstMbufPoolPub, uiCoreId);
-
-    uiCoreId = rte_get_next_lcore(uiCoreId, 1, 0);
-	rte_eal_remote_launch(udp_server_entry, pstMbufPoolPub, uiCoreId);
-	
-    // uiCoreId = rte_get_next_lcore(uiCoreId, 1, 0);
-    // rte_eal_remote_launch(tcp_server_entry, pstMbufPoolPub, uiCoreId);
-
-    while (1) 
-    {
-        // rx
-        iRxNum = rte_eth_rx_burst(D_PORT_ID, 0, pstRecvMbuf, D_BURST_SIZE);
-        if(iRxNum > 0)
-            rte_ring_sp_enqueue_burst(pstRing->pstInRing, (void**)pstRecvMbuf, iRxNum, NULL);
-        
-        // tx
-        iTotalNum = rte_ring_sc_dequeue_burst(pstRing->pstOutRing, (void**)pstSendMbuf, D_BURST_SIZE, NULL);
-		if(iTotalNum > 0)
-		{
-			iOffset = 0;
-			while(iOffset < iTotalNum)
-			{
-				iTxNum = rte_eth_tx_burst(D_PORT_ID, 0, &pstSendMbuf[iOffset], iTotalNum - iOffset);
-				if(iTxNum > 0)
-					iOffset += iTxNum;
-			}
-		}
-    }
-
-}   
