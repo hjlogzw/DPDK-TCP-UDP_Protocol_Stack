@@ -1,8 +1,0 @@
-{
-  "C_Cpp_Runner.msvcBatchPath": "",
-  "files.associations": {
-    "*.c": "c",
-    "rte_eal.h": "c",
-    "rte_ether.h": "c"
-  }
-}
