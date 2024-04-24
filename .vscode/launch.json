@@ -7,13 +7,11 @@
       "request": "launch",
       "args": [],
       "stopAtEntry": false,
-      "cwd": "e:/codeTest/test_netfamily",
-      "environment": [],
-      "program": "e:/codeTest/test_netfamily/build/Debug/outDebug",
-      "internalConsoleOptions": "openOnSessionStart",
+      "externalConsole": true,
+      "cwd": "e:/codeTest/stack_finaly/DPDK-TCP-UDP_Protocol_Stack",
+      "program": "e:/codeTest/stack_finaly/DPDK-TCP-UDP_Protocol_Stack/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "D:/DevC++/DevCpp/MinGW64/bin/gdb.exe",
-      "console": "integratedTerminal",
       "setupCommands": [
         {
           "description": "Enable pretty-printing for gdb",
