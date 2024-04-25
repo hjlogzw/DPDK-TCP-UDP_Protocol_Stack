@@ -1,4 +1,5 @@
 #include "dpdk_common.h"
+#include "udp.h"
 #include "arp.h"
 
 static uint8_t gSrcMac[RTE_ETHER_ADDR_LEN]; 
@@ -21,6 +22,7 @@ void pkg_process(void *arg){
 
 				if (ip->next_proto_id == IPPROTO_UDP){
 					// todo 处理UDP
+					udp_process(mbufs[i]);
 				} else if (ip->next_proto_id == IPPROTO_TCP){
 					// todo 处理UDP
 				} else {

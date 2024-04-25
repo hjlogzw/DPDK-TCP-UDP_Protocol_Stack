@@ -1,6 +1,9 @@
 #ifndef __DPDK_COMMON_H__
 #define __DPDK_COMMON_H__
 
+#include <stdio.h>
+#include <arpa/inet.h>
+
 #include <rte_eal.h> 
 #include <rte_malloc.h>
 #include <rte_mbuf.h>

@@ -1,5 +1,11 @@
 #include "dpdk_common.h"
 
+void print_addr(uint32_t addr, short port){
+    struct in_addr tmp;
+    tmp.s_addr = addr;
+    printf("udp_process ---> src: %s:%d \n", inet_ntoa(tmp), port);
+}
+
 void init_port(struct rte_mempool *mbuf_pool, unsigned short portId){
     uint16_t ports = rte_eth_dev_count_avail();
     if (ports == 0) {
